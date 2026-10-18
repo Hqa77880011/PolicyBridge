@@ -70,9 +70,20 @@ def observe(policy, request):
     for rule in selected:
         for obligation in rule.get("obligations", []):
             item = copy.deepcopy(obligation)
+            arguments = item.get("args", {})
+            if any(
+                isinstance(value, str) and value.startswith("$") and value[1:] not in request
+                for value in arguments.values()
+            ):
+                return {
+                    "decision": "Indeterminate",
+                    "error": "missing_or_type",
+                    "obligations": [],
+                    "precedence": [],
+                }
             item["args"] = {
                 k: request[v[1:]] if isinstance(v, str) and v.startswith("$") else v
-                for k, v in item.get("args", {}).items()
+                for k, v in arguments.items()
             }
             obligations.append(json.dumps(item, sort_keys=True))
         edges.update(tuple(edge) for edge in rule.get("precedence", []))
